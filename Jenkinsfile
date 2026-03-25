@@ -1,6 +1,6 @@
 pipeline {
     agent any
-
+    #env
     environment {
         DOCKER_IMAGE = "anhduc8702/my-app"
         MANIFESTS_REPO = "https://github.com/ThaiAnhDuc02/my-microservices-app-manifest.git"
