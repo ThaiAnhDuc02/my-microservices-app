@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        IMAGE = "thaianhduc02/my-microservices-app"
+        IMAGE = "anhduc8702/my-microservices-app"
         MANIFEST_REPO = "github.com/ThaiAnhDuc02/my-microservices-app-manifest.git"
     }
     
