@@ -37,12 +37,16 @@ pipeline {
                     sh '''
                         git clone https://$GH_TOKEN@$MANIFEST_REPO manifests
                         cd manifests
-                        sed -i "s|$IMAGE:.*|$IMAGE:$BUILD_NUMBER|g" staging/deployment.yaml
+                        sed -i "s|image:.*my-.*app:.*|image: $IMAGE:$BUILD_NUMBER|g" staging/deployment.yaml
                         git config user.email "jenkins@ci.local"
                         git config user.name  "Jenkins"
                         git add staging/deployment.yaml
-                        git commit -m "ci: update image to $BUILD_NUMBER"
-                        git push
+                        if git diff --staged --quiet; then
+                            echo "No changes to commit"
+                        else
+                            git commit -m "ci: update image to $BUILD_NUMBER"
+                            git push
+                        fi
                     '''
                 }
             }
