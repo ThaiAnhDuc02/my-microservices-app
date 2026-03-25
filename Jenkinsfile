@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "yourdockerhub/my-app"
-        MANIFESTS_REPO = "https://github.com/you/my-app-manifests.git"
+        DOCKER_IMAGE = "anhduc8702/my-app"
+        MANIFESTS_REPO = "https://github.com/ThaiAnhDuc02/my-microservices-app-manifest.git"
     }
 
     stages {
