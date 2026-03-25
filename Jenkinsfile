@@ -1,57 +1,57 @@
 pipeline {
     agent any
-
+    
     environment {
-        DOCKER_IMAGE = "yourdockerhub/my-app"
-        MANIFESTS_REPO = "https://github.com/you/my-app-manifests.git"
+        IMAGE = "thaianhduc02/my-microservices-app"
+        MANIFEST_REPO = "github.com/ThaiAnhDuc02/my-microservices-app-manifest.git"
     }
-
+    
     stages {
-        stage('Build & Push') {
+        stage('Build & Test') {
             steps {
-                script {
-                    def tag = "${env.BUILD_NUMBER}"
-                    withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
-                        sh """
-                            docker build -t ${DOCKER_IMAGE}:${tag} .
-                            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-                            docker push ${DOCKER_IMAGE}:${tag}
-                        """
-                    }
-                    env.IMAGE_TAG = tag
+                sh 'docker build -t $IMAGE:$BUILD_NUMBER .'
+                sh 'docker run --rm $IMAGE:$BUILD_NUMBER npm test'  // hoặc lệnh test của bạn
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                                usernameVariable: 'DOCKER_USER',
+                                                passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $IMAGE:$BUILD_NUMBER
+                        docker tag  $IMAGE:$BUILD_NUMBER $IMAGE:latest
+                        docker push $IMAGE:latest
+                    '''
                 }
             }
         }
-
-        stage('Update Manifests') {
+        
+        stage('Update Manifest Repo') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'github-creds',
-                    usernameVariable: 'GIT_USER',
-                    passwordVariable: 'GIT_PASS'
-                )]) {
-                    sh """
-                        git clone https://${GIT_USER}:${GIT_PASS}@github.com/you/my-app-manifests.git
-                        cd my-app-manifests
-                        sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${env.IMAGE_TAG}|' staging/deployment.yaml
-                        git config user.email "jenkins@ci"
-                        git config user.name "Jenkins"
+                withCredentials([string(credentialsId: 'github-manifest-token',
+                               variable: 'GH_TOKEN')]) {
+                    sh '''
+                        git clone https://$GH_TOKEN@$MANIFEST_REPO manifests
+                        cd manifests
+                        sed -i "s|$IMAGE:.*|$IMAGE:$BUILD_NUMBER|g" staging/deployment.yaml
+                        git config user.email "jenkins@ci.local"
+                        git config user.name  "Jenkins"
                         git add staging/deployment.yaml
-                        git commit -m "Update image to ${env.IMAGE_TAG}"
+                        git commit -m "ci: update image to $BUILD_NUMBER"
                         git push
-                    """
+                    '''
                 }
             }
         }
     }
-
+    
     post {
         always {
-            sh 'rm -rf my-app-manifests'
+            sh 'docker logout'
+            cleanWs()
         }
     }
 }
